@@ -18,6 +18,7 @@ class DatasetSplit(str, enum.Enum):
     TRAIN = "train"
     VALIDATION = "validation"
     TEST = "test"
+    NOSPLIT = "nosplit"
 
 
 @dataclasses.dataclass

@@ -42,6 +42,9 @@ def prepare_dataset(
     data_names = [ds.name for ds in data_opts]
     data_weights = [ds.weight for ds in data_opts]
     data_sets = [datasets.create_dataset(ds, data_args) for ds in data_names]
+    print(f"Data sets: {data_names}")
+    print(f"Data weights: {data_weights}")
+    
     # If we're using epochs to train, validate the dataset length is appropriate.
     if train_args.max_steps == 0:
         for ds in data_sets:

@@ -144,6 +144,29 @@ class VoiceDataset(SizedIterableDataset):
         if self._args.shuffle:
             dataset = dataset.shuffle(seed=self._args.shuffle_seed)
         return dataset
+    def _load_from_disk(
+        self,
+        path: str,
+        name: Optional[str] = None,
+        *,
+        split: Optional[str] = None,
+        streaming: bool = True,
+        audio_field: Optional[str] = None,
+    ) -> data.Dataset:
+        # HF datasets sometimes fails to download due to network issues, so retry a few times.
+        dataset = hf_datasets.load_from_disk(
+            path,
+            # name,
+            # streaming=streaming,
+            # download_config=hf_datasets.DownloadConfig(max_retries=10),
+        )
+        if audio_field is not None:
+            dataset = dataset.cast_column(
+                audio_field, hf_datasets.Audio(sampling_rate=data_sample.SAMPLE_RATE)
+            )
+        if self._args.shuffle:
+            dataset = dataset.shuffle(seed=self._args.shuffle_seed)
+        return dataset
 
     def _load_mds_dataset(
         self,
@@ -182,9 +205,13 @@ class VoiceDataset(SizedIterableDataset):
             if self._args.include_audio:
                 # If audio_field is set, make sure the sample has audio data.
                 if sample.audio is None:
-                    raise ValueError(f"Audio is None for sample {sample}")
+                    # raise ValueError(f"Audio is None for sample {sample}")
+                    warnings.warn(f"Audio is None for sample {sample}")
+                    continue
                 if sample.audio.shape[-1] == 0:
-                    raise ValueError(f"Audio length is 0 for sample {sample}")
+                    # raise ValueError(f"Audio length is 0 for sample {sample}")
+                    warnings.warn(f"Audio length is 0 for sample {sample}")
+                    continue
                 if (
                     self._args.max_audio_duration_secs is not None
                     and sample.audio.shape[-1] / data_sample.SAMPLE_RATE
@@ -195,6 +222,15 @@ class VoiceDataset(SizedIterableDataset):
                         f"Audio length ({duration}s) exceeds max audio duration ({self._args.max_audio_duration_secs}s), skipping sample."
                     )
                     continue
+                if (
+                    sample.audio.shape[-1] / data_sample.SAMPLE_RATE
+                    < 0.1
+                ):
+                    warnings.warn(
+                        f"Audio length ({sample.audio.shape[-1] / data_sample.SAMPLE_RATE}s) is less than 0.1s, skipping sample."
+                    )
+                    continue
+
 
             yield sample
             actual_length += 1
@@ -269,6 +305,7 @@ class GenericDataset(VoiceDataset):
                         config.subset,
                         split=split.name,
                         audio_field=config.audio_field,
+                        # streaming=False
                     )
                 else:
                     ds = self._load_mds_dataset(
@@ -277,8 +314,17 @@ class GenericDataset(VoiceDataset):
                         split=split.name,
                         batch_size=config.mds_batch_size,
                     )
-                dsets.append(ds)
                 total_samples += split.num_samples
+                dsets.append(ds)
+            elif split.split_type == "nosplit":
+                # This is a special case where the dataset has no splits.
+                if not config.use_mds:
+                    ds = self._load_from_disk(
+                        config.path,
+                        audio_field=config.audio_field,
+                    )
+                total_samples += split.num_samples
+                dsets.append(ds)
         assert (
             len(dsets) > 0
         ), f"The {config.name} dataset has no {self._args.split} splits."
