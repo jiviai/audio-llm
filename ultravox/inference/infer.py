@@ -14,15 +14,7 @@ from ultravox.model import ultravox_processing
 
 SAMPLE_RATE = 16000
 MAX_NEW_TOKENS = 1024
-SYS_PROMPT = """As a medical professional, your task is to ask most relevant questions from the patient so that we can reach to a conclusive diagnosis. Talk to patient and follow the below guidelines:
 
-Stage 1: Gather all necessary information related to the chief complaint keeping SOCRATES principle (DO NOT state reference of SOCRATES in output question)
-Stage 2: Ask specific questions to eliminate diseases to narrow down differential diagnosis
-Never stop asking question
-Keep question short and to the point.
-Use high school level language so that question is easily understood without difficult medical terms.
-Talk in urban hinglish.
-Ask only 1 question at a time and wait for the response."""
 
 class LocalInference(base.VoiceInference):
     def __init__(
@@ -33,12 +25,13 @@ class LocalInference(base.VoiceInference):
         device: str,
         dtype: torch.dtype,
         conversation_mode: bool = False,
+        system_prompt: Optional[str] = None,
     ):
         self.model = model.to(device).to(dtype).eval()
         self.tokenizer = tokenizer
         self.processor = processor
         self.dtype = dtype
-
+        self.system_prompt = system_prompt
         self.conversation_mode = conversation_mode
         self.past_messages: List[Dict[str, str]] = []
         self.past_key_values: Optional[Union[Tuple, transformers.cache_utils.Cache]] = (
@@ -142,7 +135,7 @@ class LocalInference(base.VoiceInference):
         temperature: Optional[float] = None,
     ) -> base.InferenceGenerator:
         if not self.past_messages:
-            self.past_messages = [{"role": "system", "content": SYS_PROMPT}]
+            self.past_messages = [{"role": "system", "content": self.system_prompt}]
         extended_sample = self._get_sample_with_past(sample)
         print(extended_sample.messages)
         inputs = self._dataproc(extended_sample)

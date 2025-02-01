@@ -15,6 +15,14 @@ Text mode: Shift+Enter to submit.
 Voice mode: Click the recording button to start, then click again to stop and submit.
 """
 
+# SYS_PROMPT = """As a medical professional, your task is to ask most relevant questions from the patient so that we can reach to a conclusive diagnosis. Talk to patient and follow the below guidelines:
+
+# Stage 1: Gather all necessary information related to the chief complaint keeping SOCRATES principle (DO NOT state reference of SOCRATES in output question)
+# Stage 2: Ask specific questions to eliminate diseases to narrow down differential diagnosis
+# Keep question short and to the point.
+# Ask only 1 question at a time and wait for the response."""
+
+SYS_PROMPT = """you are a cheerful assistant. Talk in hinglish. Do not answer in more than 50 words"""
 
 @dataclass
 class DemoConfig:
@@ -23,13 +31,14 @@ class DemoConfig:
     #    runs/llama2_asr_gigaspeech/checkpoint-1000/
     #    wandb://fixie/ultravox/model-llama2_asr_gigaspeech:v0
     # model_path: str = "fixie-ai/ultravox-v0_3"
-    model_path:str = "/home/akshat/ultravox/runs/hi_og_v1/checkpoint-30000"
+    model_path:str = "/home/akshat/audio-llm/checkpoint-25000"
     device: Optional[str] = None
     data_type: Optional[str] = None
     default_prompt: str = ""
     max_new_tokens: int = 200
     temperature: float = 0
     voice_mode: bool = False
+    system_prompt: Optional[str] = SYS_PROMPT
 
 
 args = simple_parsing.parse(config_class=DemoConfig)
@@ -160,4 +169,4 @@ if args.voice_mode:
     demo = make_demo(args, inference)
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share = True)
