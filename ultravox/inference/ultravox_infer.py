@@ -18,6 +18,7 @@ class UltravoxInference(infer.LocalInference):
         device: Optional[str] = None,
         data_type: Optional[str] = None,
         conversation_mode: bool = False,
+        system_prompt: Optional[str] = None,
     ):
         """
         Args:
@@ -68,4 +69,5 @@ class UltravoxInference(infer.LocalInference):
             device=device,
             dtype=dtype,
             conversation_mode=conversation_mode,
+            system_prompt=system_prompt,
         )

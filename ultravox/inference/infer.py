@@ -134,8 +134,8 @@ class LocalInference(base.VoiceInference):
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
     ) -> base.InferenceGenerator:
-        # if not self.past_messages:
-        #     self.past_messages = [{"role": "system", "content": SYS_PROMPT}]
+        if not self.past_messages:
+            self.past_messages = [{"role": "system", "content": SYS_PROMPT}]
         extended_sample = self._get_sample_with_past(sample)
         print(extended_sample.messages)
         inputs = self._dataproc(extended_sample)
