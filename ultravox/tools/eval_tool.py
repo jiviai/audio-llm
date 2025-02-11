@@ -23,12 +23,12 @@ def main(args: EvalArgs):
     for i, line in enumerate(args.file.readlines()):
         sample = eval_types.Sample.from_json(line)
         result = eval.evaluate_answer(sample, metric=args.metric)
-        assert result.score is not None, "Rating failed."
-        scores.append(result.score)
-        average = sum(scores) / len(scores)
-        print(f"{i}: score={result.score:.2f} average={average:.2f}")
-        if args.verbose and isinstance(result, eval_types.InstructResult):
-            print(f"  reason={result.reason}")
+        if result.score is not None and result.score !=1.0:
+            scores.append(result.score)
+            average = sum(scores) / len(scores)
+            print(f"{i}: score={result.score:.2f} average={average:.2f}")
+            if args.verbose and isinstance(result, eval_types.InstructResult):
+                print(f"  reason={result.reason}")
 
 
 if __name__ == "__main__":

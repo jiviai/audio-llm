@@ -1,0 +1,35 @@
+# SLM with ultravox & llama3.1, trained wtih knowledge distillation.
+# Make sure to accept the license agreement on huggingface hub
+text_model: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+audio_model: "jiviai/whisper-v3-mrhigu_v2"
+
+loss_config:
+  # Choose from ["KL_Divergence", "CrossEntropy"], default is "KL_Divergence"
+  loss_function: "KL_Divergence"
+
+train_sets:
+  - name: librispeech-clean-continuation
+  - name: /home/akshat/speech-experiments/data_storage_volume/final_data/asr_hi_jivi_train
+  - name: jarvisx17/Medical-ASR-EN
+  # - name: Hani89/medical_asr_recording_dataset
+  - name: commonvoice-hi-continuation
+  # - name: librispeech-other-continuation
+  # - name: commonvoice-en-continuation
+  
+# Temporarily remove heysquad_human from val_sets as it causes the training to fail.
+val_sets:
+  # - name: covost2-en-de
+  # - name: covost2-zh-en
+  # - name: peoplespeech-clean-transcription
+  - name: /home/akshat/speech-experiments/data_storage_volume/final_data/asr_hi_jivi_test
+
+batch_size: 16
+max_steps: 13000 # x4x16 = 1920k steps
+lr: 1.e-4
+
+# model_load_dir: "/home/akshat/ultravox/fixiev4/model.safetensors"
+model_load_dir: "/home/akshat/ultravox/runs/ogg/checkpoint-25000/model.safetensors"
+text_model_lora_config:
+  r: 16
+  lora_alpha: 32
+  target_modules: ['mlp.gate_proj', 'mlp.up_proj', 'mlp.down_proj', 'v_proj', 'o_proj', 'k_proj', 'q_proj']

@@ -4,8 +4,8 @@ import sys
 # Temporary fix for an issue where importing NLTK breaks PyTorch multiprocessing on MacOS.
 # For more details, see: https://github.com/nltk/nltk/issues/2949
 sys.modules["tkinter"] = None  # type: ignore
-import nltk  # needed for truecase
-import truecase
+# import nltk  # needed for truecase
+# import truecase
 
 
 class FormatASRError(ValueError):
@@ -14,11 +14,11 @@ class FormatASRError(ValueError):
 
 # only in master thread per node to avoid
 # other threads overwriting the downloaded .zip
-if int(os.environ.get("LOCAL_RANK", 0)) == 0:
-    try:
-        truecase.get_true_case("test")
-    except LookupError:
-        nltk.download("punkt", quiet=True)
+# if int(os.environ.get("LOCAL_RANK", 0)) == 0:
+#     try:
+#         truecase.get_true_case("test")
+#     except LookupError:
+#         nltk.download("punkt", quiet=True)
 
 
 def format_asr_text(text: str) -> str:
@@ -42,7 +42,7 @@ def format_asr_text(text: str) -> str:
         remaining_words.append(word)
 
     text = " ".join(remaining_words)
-    text = truecase.get_true_case(text)
+    # text = truecase.get_true_case(text)
     text_stripped = text.strip()
     if len(text_stripped) == 0:
         raise FormatASRError("Empty text after processing")

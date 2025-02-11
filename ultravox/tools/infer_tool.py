@@ -15,6 +15,7 @@ from ultravox.evaluation import eval
 from ultravox.evaluation import eval_types
 from ultravox.inference import base
 from ultravox.tools import infer_api
+from dataclasses import field  # Import field
 
 # There are two default modes for this tool, agent mode and ASR mode.
 # In agent mode, the answer is a response to the input content and cannot be
@@ -28,7 +29,7 @@ DEFAULT_ASR_PROMPT = "Transcribe\n<|audio|>"
 @dataclasses.dataclass
 class InferArgs:
     # Model ID to use for the model
-    model: str = simple_parsing.field(default="fixie-ai/ultravox-v0_2", alias="-m")
+    model: str = simple_parsing.field(default="/home/akshat/ultravox/runs/exp--2025-01-30--14-14-15/checkpoint-25000", alias="-m")
     # Path to the audio file
     audio_file: Optional[IO] = simple_parsing.field(
         default=None, type=argparse.FileType("rb"), alias="-f"
@@ -38,7 +39,7 @@ class InferArgs:
     # Inference the model using only the text input or transcript, without audio
     text_only: bool = False
     # Use ASR for the prompt and compute WER
-    asr: bool = False
+    asr: bool = True
     # URL to use for inference
     url: Optional[str] = simple_parsing.field(default=None, alias="-u")
     # Audio processor ID to use
@@ -46,19 +47,22 @@ class InferArgs:
     # Tokenizer ID to use
     tokenizer: Optional[str] = None
     # Data sets to use for inference
-    data_sets: Optional[List[str]] = simple_parsing.field(default=None, alias="-d")
+    data_sets: Optional[List[str]] = simple_parsing.field(
+        default_factory=lambda: ["/home/akshat/speech-experiments/data_storage_volume/final_data/asr_hi_jivi_test"],
+        alias="-d"
+    )
     # Which dataset split to use
     data_split: datasets.DatasetSplit = simple_parsing.field(
         default=datasets.DatasetSplit.VALIDATION, alias="-s"
     )
     # Number of dataset samples to process
-    num_samples: int = simple_parsing.field(default=1, alias="-n")
+    num_samples: int = simple_parsing.field(default=10000, alias="-n")
     # Shuffle the dataset
     shuffle: bool = False
     # Seed for shuffling
     seed: Optional[int] = None
     # Device to use for inference
-    device: Optional[str] = simple_parsing.field(default=None, alias="-D")
+    device: Optional[str] = simple_parsing.field(default="cuda", alias="-D")
     # Data type to use for the model
     data_type: Optional[str] = None
     # Temperature for sampling
@@ -70,9 +74,9 @@ class InferArgs:
     # Verbose output
     verbose: bool = simple_parsing.field(default=False, alias="-v")
     # JSON output
-    json: bool = simple_parsing.field(default=False)
+    json: bool = simple_parsing.field(default=True)
     # Batch size
-    batch_size: Optional[int] = simple_parsing.field(default=1, alias="-b")
+    batch_size: Optional[int] = simple_parsing.field(default=64, alias="-b")
 
     def __post_init__(self):
         if self.prompt and self.prompt.startswith("@"):
@@ -178,10 +182,12 @@ def dataset_infer(inference: base.VoiceInference, args: InferArgs):
         include_audio=not args.text_only,
         shuffle=args.shuffle,
         split=args.data_split,
+        max_audio_duration_secs=16.0,
     )
     if args.seed is not None:
         ds_args.shuffle_seed = args.seed
     ds = datasets.create_dataset(args.data_sets[0], ds_args)
+    # move ds to cuda if device is cuda
 
     if args.json:
         dl = data_utils.DataLoader(
@@ -209,7 +215,7 @@ def dataset_infer(inference: base.VoiceInference, args: InferArgs):
                     "generated_answer": generated.text,
                 }
                 sample_index += 1
-                print(json.dumps(output))
+                print(json.dumps(output, ensure_ascii=False))
     else:
         scores: List[float] = []
         for i, sample in enumerate(datasets.Range(ds, args.num_samples)):
